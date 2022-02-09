@@ -256,7 +256,7 @@ function genResultGrid() {
   grid-gap: 5px;
   padding: 10px;
   box-sizing: border-box;
-  --height: min(540px, calc(var(--vh, 100vh) - 310px));
+  --height: min(560px, calc(var(--vh, 100vh) - 250px));
   height: var(--height);
   width: min(450px, calc(var(--height) / 12 * 8));
   margin: 0px auto;
