@@ -2,30 +2,52 @@
 import { onUnmounted } from 'vue'
 import { getWordOfTheDay, allWords } from './words'
 import Keyboard from './Keyboard.vue'
-import { LetterState } from './types'
+import { LetterState, Tile, Row } from './types'
 
 // Get word of the day
 const answer = getWordOfTheDay()
 
 // Board state. Each tile is represented as { letter, state }
+const activeTiles = [
+  [1, 1, 0, 0, 0, 0],
+  [1, 1, 1, 0, 0, 0],
+  [0, 1, 1, 1, 0, 0],
+  [0, 0, 1, 1, 1, 0],
+  [0, 0, 0, 1, 1, 1],
+  [0, 0, 1, 1, 1, 1],
+  [0, 1, 1, 1, 1, 0],
+  [1, 1, 1, 1, 0, 0],
+  [1, 1, 1, 1, 1, 0],
+  [0, 1, 1, 1, 1, 1],
+  [1, 1, 1, 1, 1, 1],
+]
 const board = $ref(
-  Array.from({ length: 6 }, () =>
-    Array.from({ length: 5 }, () => ({
-      letter: '',
-      state: LetterState.INITIAL
-    }))
-  )
+  Array.from({ length: 11 }, (v, r) => ({
+    letters: Array.from(
+      { length: 6 },
+      (v, t) =>
+        <Tile>{
+          letter: '',
+          state: activeTiles[r][t] - 1,
+        }
+    ),
+    score: 0,
+  }))
+  // [[{ letter: "", state: LetterState.ACTIVE }]]
 )
 
 // Current active row.
 let currentRowIndex = $ref(0)
 const currentRow = $computed(() => board[currentRowIndex])
 
+const totalScore = $computed(() => board.reduce((a, b) => a + b.score, 0))
+
 // Feedback state: message and shake
 let message = $ref('')
 let grid = $ref('')
 let shakeRowIndex = $ref(-1)
 let success = $ref(false)
+let gameOver = $ref(false)
 
 // Keep track of revealed letters for the virtual keyboard
 const letterStates: Record<string, LetterState> = $ref({})
@@ -53,8 +75,8 @@ function onKey(key: string) {
 }
 
 function fillTile(letter: string) {
-  for (const tile of currentRow) {
-    if (!tile.letter) {
+  for (const tile of currentRow.letters) {
+    if (!tile.letter && tile.state === LetterState.ACTIVE) {
       tile.letter = letter
       break
     }
@@ -62,7 +84,7 @@ function fillTile(letter: string) {
 }
 
 function clearTile() {
-  for (const tile of [...currentRow].reverse()) {
+  for (const tile of [...currentRow.letters].reverse()) {
     if (tile.letter) {
       tile.letter = ''
       break
@@ -71,8 +93,11 @@ function clearTile() {
 }
 
 function completeRow() {
-  if (currentRow.every((tile) => tile.letter)) {
-    const guess = currentRow.map((tile) => tile.letter).join('')
+  const currentActiveTiles = currentRow.letters.filter(
+    (tile) => tile.state === LetterState.ACTIVE
+  )
+  if (currentActiveTiles.every((tile) => tile.letter)) {
+    const guess = currentActiveTiles.map((tile) => tile.letter).join('')
     if (!allWords.includes(guess) && guess !== answer) {
       shake()
       showMessage(`Not in word list`)
@@ -81,25 +106,27 @@ function completeRow() {
 
     const answerLetters: (string | null)[] = answer.split('')
     // first pass: mark correct ones
-    currentRow.forEach((tile, i) => {
+    currentRow.letters.forEach((tile, i) => {
       if (answerLetters[i] === tile.letter) {
         tile.state = letterStates[tile.letter] = LetterState.CORRECT
         answerLetters[i] = null
+        currentRow.score += 1000
       }
     })
     // second pass: mark the present
-    currentRow.forEach((tile) => {
+    currentRow.letters.forEach((tile) => {
       if (!tile.state && answerLetters.includes(tile.letter)) {
         tile.state = LetterState.PRESENT
         answerLetters[answerLetters.indexOf(tile.letter)] = null
         if (!letterStates[tile.letter]) {
           letterStates[tile.letter] = LetterState.PRESENT
         }
+        currentRow.score += 250
       }
     })
     // 3rd pass: mark absent
-    currentRow.forEach((tile) => {
-      if (!tile.state) {
+    currentRow.letters.forEach((tile) => {
+      if (tile.state === LetterState.ACTIVE) {
         tile.state = LetterState.ABSENT
         if (!letterStates[tile.letter]) {
           letterStates[tile.letter] = LetterState.ABSENT
@@ -108,7 +135,9 @@ function completeRow() {
     })
 
     allowInput = false
-    if (currentRow.every((tile) => tile.state === LetterState.CORRECT)) {
+    if (
+      currentRow.letters.every((tile) => tile.state === LetterState.CORRECT)
+    ) {
       // yay!
       setTimeout(() => {
         grid = genResultGrid()
@@ -119,6 +148,7 @@ function completeRow() {
           -1
         )
         success = true
+        gameOver = true
       }, 1600)
     } else if (currentRowIndex < board.length - 1) {
       // go the next row
@@ -128,6 +158,7 @@ function completeRow() {
       }, 1600)
     } else {
       // game over :(
+      gameOver = true
       setTimeout(() => {
         showMessage(answer.toUpperCase(), -1)
       }, 1600)
@@ -158,14 +189,13 @@ const icons = {
   [LetterState.CORRECT]: '🟩',
   [LetterState.PRESENT]: '🟨',
   [LetterState.ABSENT]: '⬜',
-  [LetterState.INITIAL]: null
 }
 
 function genResultGrid() {
   return board
     .slice(0, currentRowIndex + 1)
     .map((row) => {
-      return row.map((tile) => icons[tile.state]).join('')
+      return row.letters.map((tile) => icons[tile.state]).join('')
     })
     .join('\n')
 }
@@ -179,26 +209,26 @@ function genResultGrid() {
     </div>
   </Transition>
   <header>
-    <h1>VVORDLE</h1>
-    <a
-      id="source-link"
-      href="https://github.com/yyx990803/vue-wordle"
-      target="_blank"
-      >Source</a
-    >
+    <h1>What's My Word?</h1>
   </header>
-  <div id="board">
+  <div id="board" :class="[gameOver && 'game-over']">
+    <div class="totalScore">Score: {{ totalScore }}</div>
     <div
       v-for="(row, index) in board"
       :class="[
         'row',
+        currentRowIndex > index && 'scored',
         shakeRowIndex === index && 'shake',
-        success && currentRowIndex === index && 'jump'
+        success && currentRowIndex === index && 'jump',
       ]"
     >
       <div
-        v-for="(tile, index) in row"
-        :class="['tile', tile.letter && 'filled', tile.state && 'revealed']"
+        v-for="(tile, index) in row.letters"
+        :class="[
+          'tile',
+          tile.letter && 'filled',
+          tile.state === LetterState.ACTIVE ? 'active' : tile.state,
+        ]"
       >
         <div class="front" :style="{ transitionDelay: `${index * 300}ms` }">
           {{ tile.letter }}
@@ -207,12 +237,13 @@ function genResultGrid() {
           :class="['back', tile.state]"
           :style="{
             transitionDelay: `${index * 300}ms`,
-            animationDelay: `${index * 100}ms`
+            animationDelay: `${index * 100}ms`,
           }"
         >
           {{ tile.letter }}
         </div>
       </div>
+      <div :class="['score', row.score && 'visible']">{{ row.score }}</div>
     </div>
   </div>
   <Keyboard @key="onKey" :letter-states="letterStates" />
@@ -221,13 +252,13 @@ function genResultGrid() {
 <style scoped>
 #board {
   display: grid;
-  grid-template-rows: repeat(6, 1fr);
+  grid-template-rows: repeat(12, 1fr);
   grid-gap: 5px;
   padding: 10px;
   box-sizing: border-box;
-  --height: min(420px, calc(var(--vh, 100vh) - 310px));
+  --height: min(540px, calc(var(--vh, 100vh) - 310px));
   height: var(--height);
-  width: min(350px, calc(var(--height) / 6 * 5));
+  width: min(450px, calc(var(--height) / 12 * 8));
   margin: 0px auto;
 }
 .message {
@@ -246,10 +277,30 @@ function genResultGrid() {
 .message.v-leave-to {
   opacity: 0;
 }
+.totalScore {
+  text-align: left;
+  font-size: 1rem;
+  line-height: 2rem;
+  font-weight: bold;
+  vertical-align: middle;
+  text-transform: uppercase;
+}
 .row {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr) 2fr;
   grid-gap: 5px;
+}
+.row .score {
+  display: none;
+  font-size: 1.4rem;
+  line-height: 2rem;
+  font-weight: bold;
+  vertical-align: middle;
+  text-transform: uppercase;
+  text-align: right;
+}
+.row .score.visible {
+  display: inline-block;
 }
 .tile {
   width: 100%;
@@ -260,6 +311,7 @@ function genResultGrid() {
   text-transform: uppercase;
   user-select: none;
   position: relative;
+  background-color: #666;
 }
 .tile.filled {
   animation: zoom 0.2s;

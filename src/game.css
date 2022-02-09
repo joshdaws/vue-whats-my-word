@@ -12,7 +12,6 @@ h1 {
 
 header {
   border-bottom: 1px solid #ccc;
-  margin-bottom: 30px;
   position: relative;
 }
 
@@ -22,20 +21,30 @@ header {
   top: 0.5em;
 }
 
-.correct,
-.present,
-.absent {
+#board .correct,
+#board .present,
+#board .absent {
   color: #fff !important;
 }
 
-.correct {
+#board.game-over .correct {
   background-color: #6aaa64 !important;
 }
 
-.present {
+#board.game-over .present {
   background-color: #c9b458 !important;
 }
 
-.absent {
+#board.game-over .absent {
   background-color: #787c7e !important;
+}
+
+.active {
+  background-color: #fff !important;
+}
+
+.row.scored .correct,
+.row.scored .present,
+.row.scored .absent {
+  background-color: rgb(110, 144, 163) !important;
 }
