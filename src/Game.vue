@@ -147,6 +147,8 @@ function completeRow() {
           ],
           -1
         )
+
+        currentRow.score += 3000
         success = true
         gameOver = true
       }, 1600)
