@@ -5,6 +5,7 @@ interface Tile {
 interface Row {
   letters: Tile[]
   score: number
+  hint: boolean
 }
 const enum LetterState {
   INACTIVE = -1,

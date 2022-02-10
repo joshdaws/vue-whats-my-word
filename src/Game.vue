@@ -32,6 +32,7 @@ const board = $ref(
         }
     ),
     score: 0,
+    hint: false,
   }))
   // [[{ letter: "", state: LetterState.ACTIVE }]]
 )
@@ -92,6 +93,13 @@ function clearTile() {
   }
 }
 
+function getHint(row: Row) {
+  if (!gameOver && row.score > 0) {
+    row.hint = true
+    row.score = 0
+  }
+}
+
 function completeRow() {
   const currentActiveTiles = currentRow.letters.filter(
     (tile) => tile.state === LetterState.ACTIVE
@@ -139,16 +147,23 @@ function completeRow() {
       currentRow.letters.every((tile) => tile.state === LetterState.CORRECT)
     ) {
       // yay!
+      currentRow.score += 3000
+      currentRowIndex++
       setTimeout(() => {
         grid = genResultGrid()
-        showMessage(
-          ['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'][
-            currentRowIndex
-          ],
-          -1
-        )
+        let message: string
+        if (totalScore > 15000) {
+          message = 'Genius'
+        } else if (totalScore > 10000) {
+          message = 'Magnificent'
+        } else if (totalScore > 5000) {
+          message = 'Great'
+        } else {
+          message = 'Meh'
+        }
 
-        currentRow.score += 3000
+        showMessage(message, -1)
+
         success = true
         gameOver = true
       }, 1600)
@@ -219,7 +234,8 @@ function genResultGrid() {
       v-for="(row, index) in board"
       :class="[
         'row',
-        currentRowIndex > index && 'scored',
+        (currentRowIndex > index || success) && 'scored',
+        row.hint && 'hint',
         shakeRowIndex === index && 'shake',
         success && currentRowIndex === index && 'jump',
       ]"
@@ -229,7 +245,10 @@ function genResultGrid() {
         :class="[
           'tile',
           tile.letter && 'filled',
-          tile.state === LetterState.ACTIVE ? 'active' : tile.state,
+          tile.state !== LetterState.INACTIVE && 'active',
+          tile.state !== LetterState.ACTIVE &&
+            tile.state !== LetterState.INACTIVE &&
+            'revealed',
         ]"
       >
         <div class="front" :style="{ transitionDelay: `${index * 300}ms` }">
@@ -245,7 +264,12 @@ function genResultGrid() {
           {{ tile.letter }}
         </div>
       </div>
-      <div :class="['score', row.score && 'visible']">{{ row.score }}</div>
+      <div
+        @click="getHint(board[index])"
+        :class="['score', row.score && 'visible']"
+      >
+        {{ row.score }}
+      </div>
     </div>
   </div>
   <Keyboard @key="onKey" :letter-states="letterStates" />
@@ -295,11 +319,11 @@ function genResultGrid() {
 .row .score {
   display: none;
   font-size: 1.4rem;
-  line-height: 2rem;
   font-weight: bold;
   vertical-align: middle;
   text-transform: uppercase;
   text-align: right;
+  margin: auto 0;
 }
 .row .score.visible {
   display: inline-block;
@@ -313,7 +337,6 @@ function genResultGrid() {
   text-transform: uppercase;
   user-select: none;
   position: relative;
-  background-color: #666;
 }
 .tile.filled {
   animation: zoom 0.2s;
@@ -335,6 +358,10 @@ function genResultGrid() {
 }
 .tile .front {
   border: 2px solid #d3d6da;
+  background-color: #666;
+}
+.tile.active .front {
+  background-color: #fff;
 }
 .tile.filled .front {
   border-color: #999;

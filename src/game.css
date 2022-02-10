@@ -27,15 +27,18 @@ header {
   color: #fff !important;
 }
 
-#board.game-over .correct {
+#board.game-over .correct,
+.row.scored.hint .correct {
   background-color: #6aaa64 !important;
 }
 
-#board.game-over .present {
+#board.game-over .present,
+.row.scored.hint .present {
   background-color: #c9b458 !important;
 }
 
-#board.game-over .absent {
+#board.game-over .absent,
+.row.scored.hint .absent {
   background-color: #787c7e !important;
 }
 
