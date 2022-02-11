@@ -51,7 +51,8 @@ let success = $ref(false)
 let gameOver = $ref(false)
 
 // Keep track of revealed letters for the virtual keyboard
-const letterStates: Record<string, LetterState> = $ref({})
+const letterStates: Record<string, { state: LetterState; revealed: boolean }> =
+  $ref({})
 
 // Handle keyboard input.
 let allowInput = true
@@ -97,6 +98,12 @@ function getHint(row: Row) {
   if (!gameOver && row.score > 0) {
     row.hint = true
     row.score = 0
+
+    row.letters
+      .filter((tile) => tile.state !== LetterState.INACTIVE)
+      .forEach((tile, i) => {
+        letterStates[tile.letter].revealed = true
+      })
   }
 }
 
@@ -116,7 +123,12 @@ function completeRow() {
     // first pass: mark correct ones
     currentRow.letters.forEach((tile, i) => {
       if (answerLetters[i] === tile.letter) {
-        tile.state = letterStates[tile.letter] = LetterState.CORRECT
+        tile.state = LetterState.CORRECT
+
+        letterStates[tile.letter] = {
+          state: tile.state,
+          revealed: false,
+        }
         answerLetters[i] = null
         currentRow.score += 1000
       }
@@ -127,7 +139,10 @@ function completeRow() {
         tile.state = LetterState.PRESENT
         answerLetters[answerLetters.indexOf(tile.letter)] = null
         if (!letterStates[tile.letter]) {
-          letterStates[tile.letter] = LetterState.PRESENT
+          letterStates[tile.letter] = {
+            state: tile.state,
+            revealed: false,
+          }
         }
         currentRow.score += 250
       }
@@ -137,10 +152,22 @@ function completeRow() {
       if (tile.state === LetterState.ACTIVE) {
         tile.state = LetterState.ABSENT
         if (!letterStates[tile.letter]) {
-          letterStates[tile.letter] = LetterState.ABSENT
+          letterStates[tile.letter] = {
+            state: tile.state,
+            revealed: false,
+          }
         }
       }
     })
+
+    if (currentRow.score === 0) {
+      currentRow.hint = true
+      currentRow.letters
+        .filter((tile) => tile.state !== LetterState.INACTIVE)
+        .forEach((tile) => {
+          letterStates[tile.letter].revealed = true
+        })
+    }
 
     allowInput = false
     if (

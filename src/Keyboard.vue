@@ -2,7 +2,7 @@
 import { LetterState } from './types'
 
 defineProps<{
-  letterStates: Record<string, LetterState>
+  letterStates: Record<string, { state: LetterState; revealed: boolean }>
 }>()
 
 defineEmits<{
@@ -12,7 +12,7 @@ defineEmits<{
 const rows = [
   'qwertyuiop'.split(''),
   'asdfghjkl'.split(''),
-  ['Enter', ...'zxcvbnm'.split(''), 'Backspace']
+  ['Enter', ...'zxcvbnm'.split(''), 'Backspace'],
 ]
 </script>
 
@@ -22,7 +22,12 @@ const rows = [
       <div class="spacer" v-if="i === 1"></div>
       <button
         v-for="key in row"
-        :class="[key.length > 1 && 'big', letterStates[key]]"
+        :class="[
+          key.length > 1 && 'big',
+          letterStates[key] &&
+            letterStates[key].revealed &&
+            letterStates[key].state,
+        ]"
         @click="$emit('key', key)"
       >
         <span v-if="key !== 'Backspace'">{{ key }}</span>
@@ -76,7 +81,7 @@ button {
   align-items: center;
   text-transform: uppercase;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0.3);
-  transition: all 0.2s 1.5s;
+  transition: all 0.2s;
 }
 button:last-of-type {
   margin: 0;
