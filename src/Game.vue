@@ -3,6 +3,7 @@ import { onUnmounted } from 'vue'
 import { getWordOfTheDay, allWords } from './words'
 import Keyboard from './Keyboard.vue'
 import { LetterState, Tile, Row } from './types'
+import { XCircleIcon, HelpCircleIcon } from '@vue-icons/feather'
 
 // Get word of the day
 const answer = getWordOfTheDay()
@@ -49,6 +50,7 @@ let grid = $ref('')
 let shakeRowIndex = $ref(-1)
 let success = $ref(false)
 let gameOver = $ref(false)
+let instructions = $ref(true)
 
 // Keep track of revealed letters for the virtual keyboard
 const letterStates: Record<string, { state: LetterState; revealed: boolean }> =
@@ -233,15 +235,24 @@ const icons = {
   [LetterState.CORRECT]: '🟩',
   [LetterState.PRESENT]: '🟨',
   [LetterState.ABSENT]: '⬜',
+  [LetterState.INACTIVE]: '⬛',
 }
 
 function genResultGrid() {
-  return board
-    .slice(0, currentRowIndex + 1)
-    .map((row) => {
-      return row.letters.map((tile) => icons[tile.state]).join('')
-    })
-    .join('\n')
+  return (
+    board
+      .slice(0, currentRowIndex + 1)
+      .map((row) => {
+        return (
+          row.letters.map((tile) => icons[tile.state]).join('') +
+          ' ' +
+          row.score
+        )
+      })
+      .join('\n') +
+    '\nTotal Score: ' +
+    totalScore
+  )
 }
 </script>
 
@@ -252,8 +263,60 @@ function genResultGrid() {
       <pre v-if="grid">{{ grid }}</pre>
     </div>
   </Transition>
+
+  <Transition>
+    <div class="message instructions" v-if="instructions">
+      <XCircleIcon
+        size="25"
+        class="close-circle"
+        @click="instructions = false"
+      ></XCircleIcon>
+      <p>
+        Deduce the daily six-letter word by guessing shorter words to score
+        points that will give you clues to the word's letters and their
+        position.
+      </p>
+      <p>
+        Correct letter in the wrong location: <strong>250 Points</strong><br />
+        Correct letter in the right location: <strong>1,000 Points</strong>
+      </p>
+      <p>Each guess must be a valid word. Hit the enter button to submit.</p>
+      <p>After each guess, your score for that row will be displayed.</p>
+      <p>
+        At any time, you can tap a row's score to spend those points to display
+        the color of the tiles in that row.
+      </p>
+      <p>
+        🟨 - Correct Letter in the wrong location<br />
+        🟩 - Correct Letter in the right location
+      </p>
+      <p>
+        <strong>A new word will be available each day!</strong>
+      </p>
+      <p>
+        <em
+          >*Based on currently out of print game
+          <a
+            href="https://boardgamegeek.com/boardgame/4079/whats-my-word"
+            target="_blank"
+            >What's My Word?</a
+          ></em
+        >
+      </p>
+      <p>
+        <a href="https://www.youtube.com/watch?v=CKpNrJ30-0M" target="_blank"
+          >How to play video</a
+        >
+      </p>
+    </div>
+  </Transition>
   <header>
     <h1>What's My Word?</h1>
+    <HelpCircleIcon
+      class="help-btn"
+      size="24"
+      @click="instructions = true"
+    ></HelpCircleIcon>
   </header>
   <div id="board" :class="[gameOver && 'game-over']">
     <div class="totalScore">Score: {{ totalScore }}</div>
@@ -329,6 +392,30 @@ function genResultGrid() {
 }
 .message.v-leave-to {
   opacity: 0;
+}
+
+.message pre {
+  text-align: left;
+}
+
+.instructions {
+  width: 80%;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 300;
+}
+.instructions a,
+.instructions a:hover {
+  color: darkseagreen;
+}
+.instructions .close-circle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.instructions p:first-of-type {
+  margin-top: 0;
 }
 .totalScore {
   text-align: left;

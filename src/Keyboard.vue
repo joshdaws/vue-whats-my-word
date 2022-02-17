@@ -24,6 +24,7 @@ const rows = [
         v-for="key in row"
         :class="[
           key.length > 1 && 'big',
+          letterStates[key] && letterStates[key].state && 'chosen',
           letterStates[key] &&
             letterStates[key].revealed &&
             letterStates[key].state,
@@ -51,7 +52,7 @@ const rows = [
 
 <style scoped>
 #keyboard {
-  margin: 30px 8px 0;
+  margin: 10px 8px 0;
   user-select: none;
 }
 .row {
