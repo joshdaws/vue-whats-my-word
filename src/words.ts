@@ -8,18 +8,18 @@ import { answers } from './word_lists/answers'
 const defaultMessage = ' Using word of the day instead.'
 
 export function getWordOfTheDay() {
-  if (location.search) {
-    try {
-      const query = atob(location.search.slice(1))
-      if (query.length !== 5) {
-        alert(`Incorrect word length from encoded query. ${defaultMessage}`)
-      } else {
-        return query
-      }
-    } catch (e) {
-      alert(`Malformed encoded word query. ${defaultMessage}`)
-    }
-  }
+  // if (location.search) {
+  //   try {
+  //     const query = atob(location.search.slice(1))
+  //     if (query.length !== 5) {
+  //       alert(`Incorrect word length from encoded query. ${defaultMessage}`)
+  //     } else {
+  //       return { query }
+  //     }
+  //   } catch (e) {
+  //     alert(`Malformed encoded word query. ${defaultMessage}`)
+  //   }
+  // }
 
   const now = new Date()
   const start = new Date(2022, 1, 8)
@@ -28,7 +28,10 @@ export function getWordOfTheDay() {
   while (day > answers.length) {
     day -= answers.length
   }
-  return answers[day]
+  return {
+    word: answers[day],
+    wordNumber: day,
+  }
 }
 
 // copied from Wordle source

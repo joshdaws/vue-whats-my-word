@@ -2,59 +2,35 @@
 import { onUnmounted } from 'vue'
 import { getWordOfTheDay, allWords } from './words'
 import Keyboard from './Keyboard.vue'
-import { LetterState, Tile, Row } from './types'
+import { LetterState, Row } from './types'
 import { XCircleIcon, HelpCircleIcon } from '@vue-icons/feather'
+import { RemovableRef, useStorage } from '@vueuse/core'
+import { useGameStore } from './stores/GameStore'
 
 // Get word of the day
-const answer = getWordOfTheDay()
+const wordOfTheDay = getWordOfTheDay()
+const answer = wordOfTheDay.word
+const wordNumber = wordOfTheDay.wordNumber + 1
+const curWord = useStorage('curWord', 0)
 
-// Board state. Each tile is represented as { letter, state }
-const activeTiles = [
-  [1, 1, 0, 0, 0, 0],
-  [1, 1, 1, 0, 0, 0],
-  [0, 1, 1, 1, 0, 0],
-  [0, 0, 1, 1, 1, 0],
-  [0, 0, 0, 1, 1, 1],
-  [0, 0, 1, 1, 1, 1],
-  [0, 1, 1, 1, 1, 0],
-  [1, 1, 1, 1, 0, 0],
-  [1, 1, 1, 1, 1, 0],
-  [0, 1, 1, 1, 1, 1],
-  [1, 1, 1, 1, 1, 1],
-]
-const board = $ref(
-  Array.from({ length: 11 }, (v, r) => ({
-    letters: Array.from(
-      { length: 6 },
-      (v, t) =>
-        <Tile>{
-          letter: '',
-          state: activeTiles[r][t] - 1,
-        }
-    ),
-    score: 0,
-    hint: false,
-  }))
-  // [[{ letter: "", state: LetterState.ACTIVE }]]
+const GameStore = useGameStore()
+let { message, grid, success, gameOver, firstTime, board, currentRowIndex } = $(
+  GameStore.$state
 )
+const { currentRow, totalScore } = $(GameStore)
 
-// Current active row.
-let currentRowIndex = $ref(0)
-const currentRow = $computed(() => board[currentRowIndex])
+if (curWord.value !== wordNumber) {
+  curWord.value = wordNumber
+  GameStore.resetGame()
+}
 
-const totalScore = $computed(() => board.reduce((a, b) => a + b.score, 0))
-
-// Feedback state: message and shake
-let message = $ref('')
-let grid = $ref('')
 let shakeRowIndex = $ref(-1)
-let success = $ref(false)
-let gameOver = $ref(false)
-let instructions = $ref(true)
+let instructions = $ref(false)
 
 // Keep track of revealed letters for the virtual keyboard
-const letterStates: Record<string, { state: LetterState; revealed: boolean }> =
-  $ref({})
+const letterStates: RemovableRef<
+  Record<string, { state: LetterState; revealed: boolean }>
+> = useStorage('letterStates', {})
 
 // Handle keyboard input.
 let allowInput = true
@@ -104,7 +80,7 @@ function getHint(row: Row) {
     row.letters
       .filter((tile) => tile.state !== LetterState.INACTIVE)
       .forEach((tile, i) => {
-        letterStates[tile.letter].revealed = true
+        letterStates.value[tile.letter].revealed = true
       })
   }
 }
@@ -127,7 +103,7 @@ function completeRow() {
       if (answerLetters[i] === tile.letter) {
         tile.state = LetterState.CORRECT
 
-        letterStates[tile.letter] = {
+        letterStates.value[tile.letter] = {
           state: tile.state,
           revealed: false,
         }
@@ -140,8 +116,8 @@ function completeRow() {
       if (!tile.state && answerLetters.includes(tile.letter)) {
         tile.state = LetterState.PRESENT
         answerLetters[answerLetters.indexOf(tile.letter)] = null
-        if (!letterStates[tile.letter]) {
-          letterStates[tile.letter] = {
+        if (!letterStates.value[tile.letter]) {
+          letterStates.value[tile.letter] = {
             state: tile.state,
             revealed: false,
           }
@@ -153,8 +129,8 @@ function completeRow() {
     currentRow.letters.forEach((tile) => {
       if (tile.state === LetterState.ACTIVE) {
         tile.state = LetterState.ABSENT
-        if (!letterStates[tile.letter]) {
-          letterStates[tile.letter] = {
+        if (!letterStates.value[tile.letter]) {
+          letterStates.value[tile.letter] = {
             state: tile.state,
             revealed: false,
           }
@@ -167,7 +143,7 @@ function completeRow() {
       currentRow.letters
         .filter((tile) => tile.state !== LetterState.INACTIVE)
         .forEach((tile) => {
-          letterStates[tile.letter].revealed = true
+          letterStates.value[tile.letter].revealed = true
         })
     }
 
@@ -265,11 +241,11 @@ function genResultGrid() {
   </Transition>
 
   <Transition>
-    <div class="message instructions" v-if="instructions">
+    <div class="message instructions" v-if="firstTime || instructions">
       <XCircleIcon
         size="25"
         class="close-circle"
-        @click="instructions = false"
+        @click="firstTime = instructions = false"
       ></XCircleIcon>
       <p>
         Deduce the daily six-letter word by guessing shorter words to score

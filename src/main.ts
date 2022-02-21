@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import Game from './Game.vue'
 import './game.css'
 
@@ -12,4 +13,4 @@ function onResize() {
   document.body.style.setProperty('--vh', window.innerHeight + 'px')
 }
 
-createApp(Game).mount('#app')
+createApp(Game).use(createPinia()).mount('#app')
