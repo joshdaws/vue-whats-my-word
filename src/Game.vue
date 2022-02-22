@@ -4,8 +4,10 @@ import { getWordOfTheDay, allWords } from './words'
 import Keyboard from './Keyboard.vue'
 import { LetterState, Row } from './types'
 import { XCircleIcon, HelpCircleIcon } from '@vue-icons/feather'
-import { RemovableRef, useStorage } from '@vueuse/core'
+import { RemovableRef, useStorage, useShare, useClipboard } from '@vueuse/core'
 import { useGameStore } from './stores/GameStore'
+
+const { share, isSupported: shareSupported } = useShare()
 
 // Get word of the day
 const wordOfTheDay = getWordOfTheDay()
@@ -18,6 +20,7 @@ let { message, grid, success, gameOver, firstTime, board, currentRowIndex } = $(
   GameStore.$state
 )
 const { currentRow, totalScore } = $(GameStore)
+const { text, copy, copied, isSupported } = useClipboard()
 
 if (curWord.value !== wordNumber) {
   curWord.value = wordNumber
@@ -200,6 +203,19 @@ function showMessage(msg: string, time = 1000) {
   }
 }
 
+function shareResults() {
+  const msg = message + '\n' + grid
+  if (shareSupported) {
+    share({
+      title: "What's My Word?",
+      text: msg,
+      url: location.href,
+    })
+  } else {
+    copy(msg)
+  }
+}
+
 function shake() {
   shakeRowIndex = currentRowIndex
   setTimeout(() => {
@@ -237,6 +253,11 @@ function genResultGrid() {
     <div class="message" v-if="message">
       {{ message }}
       <pre v-if="grid">{{ grid }}</pre>
+      <button v-if="gameOver" @click="shareResults()">
+        <span v-if="shareSupported">Share</span>
+        <span v-if="!copied">Share</span>
+        <span v-else>Copied to Clipboard!</span>
+      </button>
     </div>
   </Transition>
 
