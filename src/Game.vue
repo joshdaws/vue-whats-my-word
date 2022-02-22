@@ -209,7 +209,6 @@ function shareResults() {
     share({
       title: "What's My Word?",
       text: msg,
-      url: location.href,
     })
   } else {
     copy(msg)
@@ -255,7 +254,7 @@ function genResultGrid() {
       <pre v-if="grid">{{ grid }}</pre>
       <button v-if="gameOver" @click="shareResults()">
         <span v-if="shareSupported">Share</span>
-        <span v-if="!copied">Share</span>
+        <span v-else-if="!copied">Share</span>
         <span v-else>Copied to Clipboard!</span>
       </button>
     </div>
