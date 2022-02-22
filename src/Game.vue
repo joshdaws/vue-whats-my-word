@@ -12,7 +12,7 @@ const { share, isSupported: shareSupported } = useShare()
 // Get word of the day
 const wordOfTheDay = getWordOfTheDay()
 const answer = wordOfTheDay.word
-const wordNumber = wordOfTheDay.wordNumber + 1
+const wordNumber = wordOfTheDay.wordNumber
 const curWord = useStorage('curWord', 0)
 
 const GameStore = useGameStore()
@@ -22,11 +22,6 @@ let { message, grid, success, gameOver, firstTime, board, currentRowIndex } = $(
 const { currentRow, totalScore } = $(GameStore)
 const { text, copy, copied, isSupported } = useClipboard()
 
-if (curWord.value !== wordNumber) {
-  curWord.value = wordNumber
-  GameStore.resetGame()
-}
-
 let shakeRowIndex = $ref(-1)
 let instructions = $ref(false)
 
@@ -34,6 +29,12 @@ let instructions = $ref(false)
 const letterStates: RemovableRef<
   Record<string, { state: LetterState; revealed: boolean }>
 > = useStorage('letterStates', {})
+
+if (curWord.value !== wordNumber) {
+  curWord.value = wordNumber
+  GameStore.resetGame()
+  letterStates.value = {}
+}
 
 // Handle keyboard input.
 let allowInput = true
