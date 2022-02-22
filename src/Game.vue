@@ -204,7 +204,8 @@ function showMessage(msg: string, time = 1000) {
 }
 
 function shareResults() {
-  const msg = message + '\n' + grid + '\n' + location.href
+  const msg =
+    "What's My Word: " + curWord.value + '\n' + grid + '\n' + location.href
   if (shareSupported) {
     share({
       title: "What's My Word?",
