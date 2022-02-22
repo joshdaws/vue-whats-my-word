@@ -142,7 +142,7 @@ function completeRow() {
     })
 
     if (currentRow.score === 0) {
-      currentRow.hint = true
+      currentRow.revealed = true
       currentRow.letters
         .filter((tile) => tile.state !== LetterState.INACTIVE)
         .forEach((tile) => {
@@ -237,7 +237,7 @@ function genResultGrid() {
         return (
           row.letters.map((tile) => icons[tile.state]).join('') +
           ' ' +
-          row.score
+          (row.hint ? 'hint' : row.score)
         )
       })
       .join('\n') +
@@ -321,7 +321,7 @@ function genResultGrid() {
       :class="[
         'row',
         (currentRowIndex > index || success) && 'scored',
-        row.hint && 'hint',
+        (row.hint || row.revealed) && 'hint',
         shakeRowIndex === index && 'shake',
         success && currentRowIndex === index && 'jump',
       ]"

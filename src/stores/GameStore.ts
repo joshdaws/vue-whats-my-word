@@ -28,6 +28,7 @@ function getNewBoard() {
     ),
     score: 0,
     hint: false,
+    revealed: false,
   }))
 }
 
