@@ -27,7 +27,7 @@ let instructions = $ref(false)
 
 // Keep track of revealed letters for the virtual keyboard
 const letterStates: RemovableRef<
-  Record<string, { state: LetterState; revealed: boolean }>
+  Record<string, { state: LetterState; revealed: boolean | LetterState }>
 > = useStorage('letterStates', {})
 
 if (curWord.value !== wordNumber) {
@@ -84,7 +84,8 @@ function getHint(row: Row) {
     row.letters
       .filter((tile) => tile.state !== LetterState.INACTIVE)
       .forEach((tile, i) => {
-        letterStates.value[tile.letter].revealed = true
+        if (letterStates.value[tile.letter].revealed !== LetterState.CORRECT)
+          letterStates.value[tile.letter].revealed = tile.state
       })
   }
 }
@@ -106,10 +107,13 @@ function completeRow() {
     currentRow.letters.forEach((tile, i) => {
       if (answerLetters[i] === tile.letter) {
         tile.state = LetterState.CORRECT
-
-        letterStates.value[tile.letter] = {
-          state: tile.state,
-          revealed: false,
+        if (!letterStates.value[tile.letter]) {
+          letterStates.value[tile.letter] = {
+            state: tile.state,
+            revealed: false,
+          }
+        } else if (letterStates.value[tile.letter].state !== tile.state) {
+          letterStates.value[tile.letter].state = tile.state
         }
         answerLetters[i] = null
         currentRow.score += 1000
@@ -125,6 +129,10 @@ function completeRow() {
             state: tile.state,
             revealed: false,
           }
+        } else if (
+          letterStates.value[tile.letter].state !== LetterState.CORRECT
+        ) {
+          letterStates.value[tile.letter].state = tile.state
         }
         currentRow.score += 250
       }
@@ -172,6 +180,7 @@ function completeRow() {
         }
 
         showMessage(message, -1)
+        revealKeyboard()
 
         success = true
         gameOver = true
@@ -185,9 +194,11 @@ function completeRow() {
     } else {
       // game over :(
       gameOver = true
+      grid = genResultGrid()
       setTimeout(() => {
         showMessage(answer.toUpperCase(), -1)
       }, 1600)
+      revealKeyboard()
     }
   } else {
     shake()
@@ -201,6 +212,12 @@ function showMessage(msg: string, time = 1000) {
     setTimeout(() => {
       message = ''
     }, time)
+  }
+}
+
+function revealKeyboard() {
+  for (const letter in letterStates.value) {
+    letterStates.value[letter].revealed = true
   }
 }
 

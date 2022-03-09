@@ -2,7 +2,10 @@
 import { LetterState } from './types'
 
 defineProps<{
-  letterStates: Record<string, { state: LetterState; revealed: boolean }>
+  letterStates: Record<
+    string,
+    { state: LetterState; revealed: boolean | LetterState }
+  >
 }>()
 
 defineEmits<{
@@ -25,6 +28,7 @@ const rows = [
         :class="[
           key.length > 1 && 'big',
           letterStates[key] && letterStates[key].state && 'chosen',
+          letterStates[key] && letterStates[key].revealed,
           letterStates[key] &&
             letterStates[key].revealed &&
             letterStates[key].state,
